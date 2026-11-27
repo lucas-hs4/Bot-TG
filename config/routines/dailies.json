@@ -1,0 +1,25 @@
+{
+  "routine_name": "dailies",
+	"default_threshold": 0.85,
+	"loop_interval_ms": 600,
+	"stuck_timeout_sec": 45,
+	"global_handlers": [
+		{
+			"id": "POPUP_REWARD",
+			"detect_template": "common/popup_tap_to_close.png",
+			"actions": [
+				{ "action": "tap_point", "point": [640, 660], "wait_ms": [700, 1200] }
+			]
+		}
+	],
+	"states": [
+		{
+			"id": "LOBBY",
+			"detect_template": "lobby/home_icon.png",
+			"roi": [1100, 0, 180, 120],
+			"actions": [
+				{ "if_template": "lobby/mail_red_dot.png", "action": "tap", "wait_ms": [900, 1400] }
+			]
+		}
+	]
+}
