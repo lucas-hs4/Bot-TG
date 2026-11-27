@@ -14,6 +14,8 @@ add_executable(tgbot
     src/core/Logger.cpp
     src/core/Randomizer.cpp
     src/core/AdbController.cpp
+    src/core/ConfigLoader.cpp
+    src/vision/ScreenDetector.cpp
 )
 
 target_include_directories(tgbot PRIVATE

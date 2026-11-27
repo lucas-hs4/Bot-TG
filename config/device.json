@@ -1,0 +1,7 @@
+{
+    "adb_path": "C:\\LDPlayer\\LDPlayer9\\adb.exe",
+    "device_id": "emulator-5554",
+    "expected_width": 1280,
+    "expected_height": 720,
+    "templates_dir": "assets/templates"
+}

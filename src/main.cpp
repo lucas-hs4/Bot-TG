@@ -1,46 +1,52 @@
 #include <chrono>
 #include <string>
 
-#include <opencv2/highgui.hpp>
-
 #include "core/AdbController.hpp"
+#include "core/ConfigLoader.hpp"
 #include "core/Logger.hpp"
+#include "vision/ScreenDetector.hpp"
 
 int main() {
     auto& log = tgbot::Logger::instance();
     log.setLevel(tgbot::LogLevel::Debug);
-    log.info("=== tgbot - Teste ADB em RAM (Fase 1, Passo 1.3) ===");
+    log.info("=== tgbot - Teste ConfigLoader + ScreenDetector (Fase 1, Passo 1.4) ===");
 
-    const std::string adbPath = R"(C:\LDPlayer\LDPlayer9\adb.exe)";
-    const std::string deviceId = "emulator-5554";
+    const auto cfgOpt = tgbot::ConfigLoader::loadDeviceConfig("config/device.json");
+    if (!cfgOpt.has_value()) {
+        log.error("Falha ao carregar config/device.json.");
+        return 1;
+    }
+    const auto& cfg = *cfgOpt;
 
-    tgbot::AdbController adb(adbPath, deviceId);
+    tgbot::ScreenDetector detector;
+    detector.loadTemplatesFromDir(cfg.templatesDir);
 
+    tgbot::AdbController adb(cfg.adbPath, cfg.deviceId);
     if (!adb.checkConnection()) {
-        log.error("Emulador nao conectado! Verifique se o LDPlayer esta aberto com ADB ativado.");
+        log.error("Emulador nao conectado: " + cfg.deviceId);
         return 1;
     }
-    log.info("Conexao ADB confirmada com: " + adb.deviceId());
 
-    const auto start = std::chrono::steady_clock::now();
     const cv::Mat frame = adb.captureScreen();
-    const auto elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::steady_clock::now() - start).count();
-
     if (frame.empty()) {
-        log.error("Falha ao capturar tela do emulador.");
+        log.error("Falha ao capturar tela.");
         return 1;
     }
 
-    log.info("Screenshot em RAM OK! Dimensoes: " +
-             std::to_string(frame.cols) + "x" + std::to_string(frame.rows) +
-             " | Tempo: " + std::to_string(elapsedMs) + " ms");
+    log.info("Captura OK: " + std::to_string(frame.cols) + "x" + std::to_string(frame.rows) +
+             " | Templates em cache: " + std::to_string(detector.templateCount()));
 
-    if (frame.cols != 1280 || frame.rows != 720) {
-        log.warn("Resolucao diferente do padrao 1280x720! Ajuste o emulador.");
+    // Se voce ja tiver colocado algum PNG em assets/templates/teste.png, pode testar aqui:
+    if (detector.hasTemplate("teste.png")) {
+        const auto t0 = std::chrono::steady_clock::now();
+        const auto res = detector.findTemplate(frame, "teste.png", 0.85);
+        const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - t0).count();
+
+        log.info("Busca 'teste.png': found=" + std::string(res.found ? "true" : "false") +
+                 " | conf=" + std::to_string(res.confidence) +
+                 " | tempo=" + std::to_string(ms) + " ms");
     }
 
-    cv::imshow("tgbot - Captura em RAM (pressione qualquer tecla para fechar)", frame);
-    cv::waitKey(3000);
     return 0;
 }
