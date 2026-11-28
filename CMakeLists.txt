@@ -18,6 +18,7 @@ add_executable(tgbot
     src/core/CliOptions.cpp
     src/vision/ScreenDetector.cpp
     src/fsm/RoutineDef.cpp
+    src/fsm/StateMachine.cpp
 )
 
 target_include_directories(tgbot PRIVATE

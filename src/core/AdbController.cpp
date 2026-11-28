@@ -194,4 +194,9 @@ bool AdbController::swipe(cv::Point from, cv::Point to, int durationMs) const {
     return runCommand(cmd, ignored, 5000);
 }
 
+bool AdbController::keyEvent(int keyCode) const {
+    std::vector<std::uint8_t> ignored;
+    return runCommand("shell input keyevent " + std::to_string(keyCode), ignored, 5000);
+}
+
 }

@@ -1,9 +1,24 @@
+#include <csignal>
 #include <string>
 
+#include "core/AdbController.hpp"
 #include "core/CliOptions.hpp"
 #include "core/ConfigLoader.hpp"
 #include "core/Logger.hpp"
+#include "core/Randomizer.hpp"
 #include "fsm/RoutineDef.hpp"
+#include "fsm/StateMachine.hpp"
+#include"vision/ScreenDetector.hpp"
+
+namespace {
+tgbot::StateMachine* g_activeFsm = nullptr;
+
+void handleSignal(int) {
+    if (g_activeFsm != nullptr) {
+        g_activeFsm->requestStop();
+    }
+}
+}
 
 int main(int argc, char* argv[]) {
     auto& log = tgbot::Logger::instance();
@@ -17,12 +32,9 @@ int main(int argc, char* argv[]) {
         tgbot::printCliHelp();
         return 0;
     }
-
     if (cliOpt->debug) {
         log.setLevel(tgbot::LogLevel::Debug);
     }
-
-    log.info("=== tgbot - Teste CLI + RoutineDef (Fase 2, Passo2.1) ===");
 
     auto cfgOpt = tgbot::ConfigLoader::loadDeviceConfig(cliOpt->configPath);
     if (!cfgOpt.has_value()) {
@@ -37,10 +49,24 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    log.info("Dispositivo alvo: " + cfgOpt->deviceId);
-    log.info("Rotina carregada: " + routineOpt->name +
-             " | Global handlers: " + std::to_string(routineOpt->globalHandlers.size()) +
-             " | Estados: " + std::to_string(routineOpt->states.size()));
+    tgbot::ScreenDetector detector;
+    detector.loadTemplatesFromDir(cfgOpt->templatesDir);
 
-    return 0;
+    tgbot::AdbController adb(cfgOpt->adbPath, cfgOpt->deviceId);
+    if (!adb.checkConnection()) {
+        log.error("Emulador nao conectado: " + cfgOpt->deviceId);
+        return 1;
+    }
+
+    tgbot::Randomizer rng;
+    tgbot::StateMachine fsm(adb, detector, rng);
+
+    g_activeFsm = &fsm;
+    std::signal(SIGINT, handleSignal);
+
+    const bool ok = fsm.run(*routineOpt, 3);
+    g_activeFsm = nullptr;
+
+    return ok ? 0 : 1;
+
 }

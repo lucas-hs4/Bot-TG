@@ -21,6 +21,7 @@ public:
     bool tap(int x, int y) const;
     bool tapInBox(const cv::Rect& box, Randomizer& rng) const;
     bool swipe(cv::Point from, cv::Point to, int durationMs) const;
+    bool keyEvent(int keyCode) const;
 
     const std::string& deviceId() const noexcept { return deviceId_; }
 
